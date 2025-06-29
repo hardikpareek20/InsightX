@@ -4,65 +4,69 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from storage.db_operations import fetch_data, insert_data, delete_data
+from storage.db_operations import fetch_data, insert_data
 import pandas as pd
 
 
 def clean_data():
-    # ✅ Step 1: Fetch Raw Data
-    raw_data = fetch_data('raw_ecommerce_data')
+    print("\n🚀 Fetching raw data...")
+    data = fetch_data('raw_ecommerce_data')
 
-    if not raw_data:
-        print("❌ No data found in 'raw_ecommerce_data' collection.")
+    if not data:
+        print("❌ No raw data found. Run ingestion first.")
         return
 
-    print(f"✅ {len(raw_data)} records fetched from 'raw_ecommerce_data'")
+    df = pd.DataFrame(data)
 
-    # ✅ Step 2: Convert to DataFrame
-    df = pd.DataFrame(raw_data)
+    print("\n✅ Raw Data Sample:")
+    print(df.head())
 
-    # ✅ Step 3: Remove MongoDB's _id column (optional but often done)
-    if '_id' in df.columns:
-        df = df.drop(columns=['_id'])
+    # 🔥 Basic Cleaning — Fill Nulls Safely
+    if 'Status' not in df.columns:
+        df['Status'] = 'Pending'
+    else:
+        df['Status'] = df['Status'].fillna('Pending')
 
-    # ✅ Step 4: Remove Duplicates
-    before = len(df)
-    df = df.drop_duplicates()
-    after = len(df)
-    print(f"🗑️ Removed {before - after} duplicate rows.")
+    if 'PaymentMethod' not in df.columns:
+        df['PaymentMethod'] = 'UPI'
+    else:
+        df['PaymentMethod'] = df['PaymentMethod'].fillna('UPI')
 
-    # ✅ Step 5: Handle Missing Values
-    # Fill PaymentMethod with 'Unknown'
-    df['PaymentMethod'] = df['PaymentMethod'].fillna('Unknown')
+    text_cols = ['CustomerName', 'ProductName', 'Category']
+    for col in text_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna('Unknown')
 
-    # Fill Status with 'Pending'
-    df['Status'] = df['Status'].fillna('Pending')
+    num_cols = ['Quantity', 'Price']
+    for col in num_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna(0)
 
-    # ✅ Optional: Check and Fill Other Columns
-    df['City'] = df['City'].fillna('Unknown')
-    df['State'] = df['State'].fillna('Unknown')
+    if 'OrderDate' in df.columns:
+        df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
+        df['OrderDate'] = df['OrderDate'].fillna(pd.Timestamp('2023-07-01'))
 
-    # ✅ Step 6: Standardize Formats
-    df['CustomerName'] = df['CustomerName'].str.title()
-    df['ProductName'] = df['ProductName'].str.title()
-    df['Category'] = df['Category'].str.title()
-    df['Status'] = df['Status'].str.title()
+    # 🔥 Duplicate Removal
+    initial_rows = len(df)
 
-    # ✅ Step 7: Convert Data Types if needed
-    df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce').fillna(0).astype(int)
-    df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0).astype(float)
+    df.drop_duplicates(subset=['OrderID', 'ProductName', 'CustomerName'], inplace=True)
 
-    # ✅ Step 8: Standardize Dates
-    df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
+    removed_rows = initial_rows - len(df)
+    print(f"\n🗑️ Removed {removed_rows} duplicate rows based on OrderID, ProductName, and CustomerName.")
 
-    # ✅ Step 9: Delete previous processed data (if needed)
-    delete_data('processed_ecommerce_data')
+    # 🔥 Reset index (optional but clean)
+    df.reset_index(drop=True, inplace=True)
 
-    # ✅ Step 10: Insert Cleaned Data
+    print("\n✅ Cleaned Data Sample:")
+    print(df.head())
+
+    print(f"\n📦 Total Rows after cleaning: {len(df)}")
+
+    # ✅ Insert into processed_ecommerce_data collection
     cleaned_data = df.to_dict(orient='records')
     insert_data('processed_ecommerce_data', cleaned_data)
 
-    print(f"✅ {len(cleaned_data)} cleaned records inserted into 'processed_ecommerce_data'")
+    print("\n🎉 Cleaned data inserted into 'processed_ecommerce_data' collection successfully!")
 
 
 if __name__ == "__main__":
