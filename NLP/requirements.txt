@@ -1,0 +1,7 @@
+pandas
+ollama
+sounddevice
+soundfile
+scipy
+SpeechRecognition
+requests
