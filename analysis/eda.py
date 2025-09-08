@@ -21,42 +21,58 @@ def run_eda():
     # ✅ Step 2: Convert to DataFrame
     df = pd.DataFrame(data)
 
-    # ✅ Step 3: Basic Overview
+    # ✅ Step 3: Validate Required Columns
+    required_cols = ['OrderDate', 'ProductName', 'Category', 'Quantity', 'Price', 'PaymentMethod', 'Status']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        print(f"❌ Missing required columns: {missing_cols}")
+        return
+
+    # ✅ Step 4: Type Conversion
+    df['OrderDate'] = pd.to_datetime(df['OrderDate'], format='%d-%m-%Y', errors='coerce')
+    df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce')
+    df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+
+    # Debug: Check for invalid parsing
+    print("🔍 Invalid OrderDates:", df['OrderDate'].isna().sum())
+    print("📅 Sample OrderDates:", df['OrderDate'].dropna().unique()[:5])
+
+    df.dropna(subset=['OrderDate', 'Quantity', 'Price'], inplace=True)
+
+    # ✅ Step 5: Basic Stats
     print("\n📊 Basic Stats:")
     print(df.describe(include='all'))
 
     total_orders = len(df)
     total_revenue = (df['Quantity'] * df['Price']).sum()
-    avg_order_value = total_revenue / total_orders
+    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
 
     print(f"\n🛒 Total Orders: {total_orders}")
-    print(f"💰 Total Revenue: {total_revenue}")
-    print(f"📦 Average Order Value: {avg_order_value}")
+    print(f"💰 Total Revenue: ₹{total_revenue:.2f}")
+    print(f"📦 Average Order Value: ₹{avg_order_value:.2f}")
 
-    # ✅ Category-wise Sales
+    # ✅ Step 6: Category-wise Revenue
     print("\n📊 Category-wise Revenue:")
     cat_rev = df.groupby('Category').apply(lambda x: (x['Quantity'] * x['Price']).sum())
-    print(cat_rev)
+    print(cat_rev.sort_values(ascending=False))
 
-    # ✅ Payment Method Distribution
+    # ✅ Step 7: Payment Method Distribution
     print("\n💳 Payment Method Distribution:")
     print(df['PaymentMethod'].value_counts())
 
-    # ✅ Order Status Distribution
+    # ✅ Step 8: Order Status Distribution
     print("\n🚚 Order Status Distribution:")
     print(df['Status'].value_counts())
 
-    # ✅ Monthly Trend
-    df['Month'] = pd.to_datetime(df['OrderDate']).dt.to_period('M')
+    # ✅ Step 9: Monthly Revenue Trend
+    df['Month'] = df['OrderDate'].dt.to_period('M')
     month_rev = df.groupby('Month').apply(lambda x: (x['Quantity'] * x['Price']).sum())
 
     print("\n📅 Monthly Revenue Trend:")
-    print(month_rev)
+    print(month_rev.sort_index())
 
-    # ✅ Top 5 Cities by Revenue
-    city_rev = df.groupby('City').apply(lambda x: (x['Quantity'] * x['Price']).sum()).sort_values(ascending=False)
-    print("\n🏙️ Top 5 Cities by Revenue:")
-    print(city_rev.head(5))
+    # ✅ Step 10: (City analysis removed as per dataset)
+    # No print or warning about City since it doesn't exist
 
 
 if __name__ == "__main__":

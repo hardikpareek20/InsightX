@@ -42,19 +42,20 @@ def clean_data():
         if col in df.columns:
             df[col] = df[col].fillna(0)
 
+    # ✅ Proper Date Parsing
     if 'OrderDate' in df.columns:
-        df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
-        df['OrderDate'] = df['OrderDate'].fillna(pd.Timestamp('2023-07-01'))
+        # Try parsing using your known format: '29-04-2024'
+        df['OrderDate'] = pd.to_datetime(df['OrderDate'], format='%d-%m-%Y', errors='coerce')
+        invalid_dates = df['OrderDate'].isna().sum()
+        df = df.dropna(subset=['OrderDate'])
+        print(f"🗑️ Dropped {invalid_dates} rows due to invalid OrderDate format.")
 
     # 🔥 Duplicate Removal
     initial_rows = len(df)
-
     df.drop_duplicates(subset=['OrderID', 'ProductName', 'CustomerName'], inplace=True)
-
     removed_rows = initial_rows - len(df)
     print(f"\n🗑️ Removed {removed_rows} duplicate rows based on OrderID, ProductName, and CustomerName.")
 
-    # 🔥 Reset index (optional but clean)
     df.reset_index(drop=True, inplace=True)
 
     print("\n✅ Cleaned Data Sample:")

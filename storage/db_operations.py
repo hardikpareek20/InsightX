@@ -6,10 +6,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from storage.db_config import get_db_connection
 
+# Get the MongoDB collection
 db = get_db_connection()
+collection_name = 'processed_ecommerce_data'
+collection = db[collection_name]
 
-def insert_data(collection_name, data):
-    collection = db[collection_name]
+
+def insert_data(data):
+    """Insert one or many documents into the processed_ecommerce_data collection."""
     if isinstance(data, list):
         result = collection.insert_many(data)
         print(f"✅ {len(result.inserted_ids)} documents inserted into '{collection_name}'")
@@ -18,20 +22,20 @@ def insert_data(collection_name, data):
         print(f"✅ 1 document inserted into '{collection_name}'")
 
 
-def fetch_data(collection_name, query={}):
-    collection = db[collection_name]
+def fetch_data(query={}):
+    """Fetch documents from processed_ecommerce_data based on optional query."""
     results = collection.find(query)
     return list(results)
 
 
-def delete_data(collection_name, query={}):
-    collection = db[collection_name]
+def delete_data(query={}):
+    """Delete documents from processed_ecommerce_data based on optional query."""
     result = collection.delete_many(query)
     print(f"🗑️ {result.deleted_count} documents deleted from '{collection_name}'")
 
 
-def update_data(collection_name, query, new_values):
-    collection = db[collection_name]
+def update_data(query, new_values):
+    """Update documents in processed_ecommerce_data using query and update dict."""
     result = collection.update_many(query, {'$set': new_values})
     print(f"🔧 {result.modified_count} documents updated in '{collection_name}'")
 
@@ -48,26 +52,16 @@ if __name__ == "__main__":
     }
 
     print("\n🚀 Inserting Sample Data...")
-    insert_data('raw_ecommerce_data', sample_data)
+    insert_data(sample_data)
 
     print("\n🔍 Fetching Data...")
-    data = fetch_data('raw_ecommerce_data', {"OrderID": 9999})
+    data = fetch_data({"OrderID": 9999})
     print(data)
 
     print("\n🔧 Updating Data...")
-    update_data('raw_ecommerce_data', {"OrderID": 9999}, {"Status": "Cancelled"})
+    update_data({"OrderID": 9999}, {"Status": "Cancelled"})
 
     print("\n🗑️ Deleting Data...")
-    delete_data('raw_ecommerce_data', {"OrderID": 9999})
+    delete_data({"OrderID": 9999})
 
     print("\n✅ CRUD Operations Test Completed!\n")
-
-
-
-
-
-
-
-
-
-

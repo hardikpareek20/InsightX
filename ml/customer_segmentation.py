@@ -13,7 +13,7 @@ import seaborn as sns
 
 def customer_segmentation():
     # ✅ Fetch Processed Data
-    data = fetch_data('processed_ecommerce_data')
+    data = fetch_data()
 
     if not data:
         print("❌ No data found.")
